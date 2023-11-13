@@ -1,3 +1,13 @@
+/**
+ * James Bish, jrb327
+ * hcns.cpp
+ * 11/13/2023
+ * Created as a part of MATH303 HCN project in order to determine the first n Highly Composite Numbers.
+ * Created in collaboration with Julian Churchill, Joshua Tam.
+ * Created in model of Siano's paper, "An Algorithm For Generating Highly Composite Numbers".
+ * All code is my own.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -67,7 +77,9 @@ vector<Value> getCandidateList(Value *n) {
 
     unsigned long int nextLargestPrime, largestPrime;
     int nextLargestPrimeIndex, largestPrimeIndex;
-    // find largest prime of n
+
+    // Find the largest prime in the current HCN, and the next largest one, by looping from the 
+    // end of the exponents list and finding the first nonzero one
     for (int i = numPrimes - 1; i >= 0; i--) {
         if (n -> exponents[i] >= 1) {
             largestPrime = primes[i];
@@ -78,20 +90,27 @@ vector<Value> getCandidateList(Value *n) {
         }
     }
 
+    // For later, we need these consts
     unsigned long int rp = v(n).value / nextLargestPrime;
     unsigned long int rm = v(n).value * largestPrime;
 
+    // Iterate through combinations of the variable portion of the number, i.e. change the first 4 exponents
     for (int i = G; i >= 0; --i) {
         for (int j = i; j >= 0; --j) {
             for (int k = j; k >= 0; --k) {
                 for (int l = k; l >= 0; --l) {
-                    unsigned long int vVal = pow(2, i) * pow(3, j) * pow(5, k) * pow(7, l);
                     bool toAdd = false;
                     unsigned long int actualVal = 1;
+
+                    // Determine current variable value from the exponents alone
+                    unsigned long int vVal = pow(2, i) * pow(3, j) * pow(5, k) * pow(7, l);
+
+                    // Determine the prime factorization of this value from the variable exponents and the static portion of the number
                     int variableExponents[F] = {i, j, k, l};
                     Value sN = s(n);
                     vector<int> exponents = vector<int>(numPrimes, 0);
 
+                    // For each prime / exponent val, either add the variable & static portion, or just take the static portion
                     for (int q = 0; q < numPrimes; q++) {
                         if (q < F) {
                             exponents[q] = variableExponents[q] + sN.exponents[q]; // could be vN for first val
@@ -100,10 +119,13 @@ vector<Value> getCandidateList(Value *n) {
                         }
                     }
 
+                    // Now, we must determine if this is an actual valid candidate.
                     if (vVal > v(n).value && vVal <= v(n).value * 2) {
-                        actualVal = vVal * s(n).value;
+                        // First, if it's between the 'typical' range we expect, add it as a possibility.
+                        actualVal = vVal * s(n).value; // True value = v(n) * s(n)
                         toAdd = true;
                     } else if (vVal > rp && vVal <= rp * 2) {
+                        // Next, if it's between the extended range considering it has a larger max prime, add it as a candidate.
                         actualVal = vVal * s(n).value * nextLargestPrime;
                         exponents[nextLargestPrimeIndex] += 1;
                         toAdd = true;
@@ -111,27 +133,30 @@ vector<Value> getCandidateList(Value *n) {
                         // old / good:
                         // actualVal = vVal * s(n).value / previousLargestPrime;
                         // exponents[previousLargestPrimeIndex] -= 1;
+                        // Finally, if it's between the extended range considering it has a smaller max prime, add it as a candidate.
                         actualVal = vVal * s(n).value / largestPrime;
                         exponents[largestPrimeIndex] -= 1;
                         toAdd = true;
                     }
 
+                    // If any of the above conditions were met, add this candidate!
                     if (toAdd) {
                         Value newVal;
                         newVal.value = actualVal;
                         newVal.exponents = exponents;
 
-                        // cout << "exponent list was: ";
-                        long unsigned int test = 1;
-                        for (int q = 0; q < numPrimes; q++) {
-                            // cout << exponents[q] << ", ";
-                            test *= pow(primes[q], exponents[q]);
-                        }
-                        candidates.push_back(newVal);
+                        //===============================
+                        // Optional: double check there wasn't a mistake somewhere when changing the exponents
+                        // long unsigned int test = 1;
+                        // for (int q = 0; q < numPrimes; q++) {
+                        //     test *= pow(primes[q], exponents[q]);
+                        // }
+                        // candidates.push_back(newVal);
 
-                        if (newVal.value != test) {
-                            exit(1);
-                        }
+                        // if (newVal.value != test) {
+                        //     exit(1);
+                        // }
+                        //===============================
                     }
                 }
             }
