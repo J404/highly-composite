@@ -22,8 +22,8 @@ const int G = 8;
 const int F = 4;
 
 // TODO: dynamically set list of possible primes later, based on F / num size
-int primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29};
-int numPrimes = 10;
+int primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59};
+int numPrimes = 17;
 
 struct Value {
     long unsigned int value;
@@ -147,15 +147,17 @@ vector<Value> getCandidateList(Value *n) {
 
                         //===============================
                         // Optional: double check there wasn't a mistake somewhere when changing the exponents
-                        // long unsigned int test = 1;
-                        // for (int q = 0; q < numPrimes; q++) {
-                        //     test *= pow(primes[q], exponents[q]);
-                        // }
-                        // candidates.push_back(newVal);
+                        long unsigned int test = 1;
+                        for (int q = 0; q < numPrimes; q++) {
+                            test *= pow(primes[q], exponents[q]);
+                        }
+                        candidates.push_back(newVal);
 
-                        // if (newVal.value != test) {
-                        //     exit(1);
-                        // }
+                        if (newVal.value != test) {
+                            cout << "Discrepancy detected" << endl;
+                            cout << newVal.value << " vs " << test << endl;
+                            exit(1);
+                        }
                         //===============================
                     }
                 }
@@ -178,7 +180,7 @@ int numDivisors(Value *n) {
 
 void printExponents(vector<int> exponents) {
     for (int i = 0; i < numPrimes; i++) {
-        cout << exponents[i] << ", ";
+        cout << exponents[i] << ",";
     }
 }
 
@@ -191,9 +193,9 @@ int main() {
     // currHcn.value = 27720;
     // currHcn.exponents = {3, 2, 1, 1, 1, 0, 0, 0, 0, 0};
     currHcn.value = 2;
-    currHcn.exponents = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    currHcn.exponents = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    int idealNum = 100;
+    int idealNum = 146;
     int foundNum = 1;
     int offset = 1;
 
@@ -207,7 +209,7 @@ int main() {
         for (long unsigned int i = 0; i < candidates.size(); i++) {
             Value candidate = candidates[i];
             if (numDivisors(&candidate) > origNumDivisors) {
-                cout << foundNum + offset + 1 << ": " << candidate.value << endl;
+                cout << "HCN " << foundNum + offset << ": " << candidate.value << ". Prime powers: ";
                 printExponents(candidate.exponents);
                 cout << endl;
                 currHcn = candidate;
