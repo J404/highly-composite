@@ -19,7 +19,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-// TODO: make constants more settable / customizable
 const int G = 10;
 const int F = 6;
 
@@ -80,7 +79,6 @@ Value v(Value *n) {
 
 // Note: n is assumed to be a HCN
 vector<Value> getCandidateList(Value *n, int currHcnNum) {
-    // TODO: for now, exponents are hard coded. Make them variable later.
     vector<Value> candidates = vector<Value>();
 
     uint256_t nextLargestPrime, largestPrime;
