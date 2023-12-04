@@ -26,17 +26,20 @@ const int F = 6;
 int primes[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
 int numPrimes = 25;
 
+// Helper function to print out prime factorization of each number.
 void printExponents(vector<int> exponents) {
     for (int i = 0; i < numPrimes; i++) {
         cout << exponents[i] << ",";
     }
 }
 
+// Value contains both numerical value & prime factorization exponents for each number.
 struct Value {
     uint256_t value;
     vector<int> exponents;
 };
 
+// returns s_n, static portion of each number as described by Siano
 Value s(Value *n) {
     int numExponents = n -> exponents.size();
     Value result;
@@ -46,7 +49,6 @@ Value s(Value *n) {
     for (int i = 0; i < numExponents; i++) {
         if (n -> exponents[i] > 0) {
             result.value *= primes[i];
-            // result.exponents[i] = 1;
             result.exponents.push_back(1);
         } else {
             result.exponents.push_back(0);
@@ -56,6 +58,7 @@ Value s(Value *n) {
     return result;
 }
 
+// returns v_n, variable portion of each number as described by Siano
 Value v(Value *n) {
     Value result;
     result.value = 1;
@@ -77,10 +80,13 @@ Value v(Value *n) {
     return result;
 }
 
-// Note: n is assumed to be a HCN
+/**
+ * Returns a candidate list for the next highly composite number based on the current HCN n.
+ * These candidates must be manually checked afterwards to determine which is the actual next HCN, by 
+ * manually calculating the number of divisors of each and seeing the first increase.
+*/
 vector<Value> getCandidateList(Value *n, int currHcnNum) {
     vector<Value> candidates = vector<Value>();
-
     uint256_t nextLargestPrime, largestPrime;
     int nextLargestPrimeIndex, largestPrimeIndex;
 
@@ -96,16 +102,14 @@ vector<Value> getCandidateList(Value *n, int currHcnNum) {
         }
     }
 
-    // cout << "Largest primt found is " << largestPrime << "(at index " << largestPrimeIndex << ")" << "for num " << n -> value << endl;
-
     // For later, we need these consts
     uint256_t rp = v(n).value / nextLargestPrime;
     uint256_t rm = v(n).value * largestPrime;
 
-    // Iterate through combinations of the variable portion of the number, i.e. change the first 4 exponents
+    // Iterate through all descending permutations of the variable portion of the number, i.e. change the first F exponents
     vector<int> variableExponents(F, G);
-
     bool looping = true;
+
     while (looping) {
         bool toAdd = false;
         uint256_t actualVal = 1;
@@ -115,7 +119,6 @@ vector<Value> getCandidateList(Value *n, int currHcnNum) {
         for (unsigned long int i = 0; i < variableExponents.size(); i++) {
             vVal *= (uint256_t) pow(primes[i], variableExponents[i]);
         }
-        // uint256_t vVal = (uint256_t) pow(2, i) * (uint256_t) pow(3, j) * (uint256_t) pow(5, k) * (uint256_t) pow(7, l);
 
         // Determine the prime factorization of this value from the variable exponents and the static portion of the number
         Value sN = s(n);
@@ -144,9 +147,6 @@ vector<Value> getCandidateList(Value *n, int currHcnNum) {
             toAdd = true;
             status = "c";
         } else if (vVal > rm && vVal <= rm * 2) {
-            // old / good:
-            // actualVal = vVal * s(n).value / previousLargestPrime;
-            // exponents[previousLargestPrimeIndex] -= 1;
             // Finally, if it's between the extended range considering it has a smaller max prime, add it as a candidate.
             actualVal = vVal * s(n).value / largestPrime;
             exponents[largestPrimeIndex] -= 1;
@@ -159,14 +159,15 @@ vector<Value> getCandidateList(Value *n, int currHcnNum) {
             Value newVal;
             newVal.value = actualVal;
             newVal.exponents = exponents;
+            candidates.push_back(newVal);
 
             //===============================
-            // Optional: double check there wasn't a mistake somewhere when changing the exponents
+            // Optional: double check there wasn't a mistake somewhere when changing the exponents.
+            // These errors tend to crop up when we've reached the int storage limit.
             uint256_t test = 1;
             for (int q = 0; q < numPrimes; q++) {
                 test *= (uint256_t) pow(primes[q], exponents[q]);
             }
-            candidates.push_back(newVal);
 
             if (newVal.value != test) {
                 cout << "Discrepancy detected" << endl;
@@ -183,22 +184,17 @@ vector<Value> getCandidateList(Value *n, int currHcnNum) {
             if (i == F - 1) {
                 // Decrement rightmost digit
                 variableExponents[i]--;
-                // cout << "Decrementing #" << i << " from " << variableExponents[i] + 1 << " to " << variableExponents[i] << endl;
                 // If we're still >= 0, good to continue
                 if (variableExponents[i] >= 0) {
-                    // cout << "It's still +, good to stop." << endl;
                     break;
                 }
             } else {
                 // Otherwise, it means we have to go back and decrement first non-zero digit
-                // cout << "Looping back b/c -, @ " << i << " now." << endl;
                 if (i == 0 && variableExponents[i] == 0) {
                     looping = false;
                     break;
                 } else if (variableExponents[i] > 0) {
-                    // cout << "@ " << i << " found " << variableExponents[i] << " > 0." << endl;
                     variableExponents[i]--;
-                    // cout << "Decremented & now " << variableExponents[i] << endl;
                     for (int j = i; j < F; j++) {
                         variableExponents[j] = variableExponents[i];
                     }
@@ -211,6 +207,7 @@ vector<Value> getCandidateList(Value *n, int currHcnNum) {
     return candidates;
 }
 
+// Returns the number of divisors of a number based on the divisor theorem
 int numDivisors(Value *n) {
     int result = 1;
 
@@ -221,14 +218,13 @@ int numDivisors(Value *n) {
     return result;
 }
 
+// Comparator for Value objects based on .value for sorting
 bool compareValues(Value a, Value b) {
     return a.value < b.value;
 }
 
 int main() {
     Value currHcn;
-    // currHcn.value = 27720;
-    // currHcn.exponents = {3, 2, 1, 1, 1, 0, 0, 0, 0, 0};
     currHcn.value = 2;
     currHcn.exponents = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
@@ -236,14 +232,13 @@ int main() {
     int foundNum = 1;
     int offset = 1;
 
-    // uint256_t = (uint256_t) pow(2, 8)
-
     vector<Value> candidates = getCandidateList(&currHcn, foundNum);
 
+    // Keep iterating until we've found the 'ideal' number of HCNs or run out of candidates for some reason
     while (foundNum < idealNum && candidates.size() > 0) {
+        // Sort list of candidates & calculate # of divisors of current
         sort(candidates.begin(), candidates.end(), compareValues);
         int origNumDivisors = numDivisors(&currHcn);
-
         
         for (long unsigned int i = 0; i < candidates.size(); i++) {
             Value candidate = candidates[i];
